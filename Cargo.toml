@@ -1,0 +1,22 @@
+[package]
+name = "rusql"
+version = "0.1.0"
+authors = ["Huzaifa Naseer <huzaifanaseer026@gmail.com>"]
+edition = "2021"
+description = "Under Development"
+
+
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rustyline = "13.0.0"
+log = "0.4.20"
+env_logger = "0.10.1"
+clap = { version = "4.4.16", features = ["cargo"] }
+prettytable-rs = "0.10.0"
+rustyline-derive = "0.10.0"
+thiserror = "1.0.56"
+colored = "2.1.0"
+
