@@ -23,13 +23,11 @@ fn main() -> rustyline::Result<()> {
         .about(crate_description!())
         .get_matches();
 
-    // Starting Rustyline with a default Configuration
+    
     let config = get_config();
 
-    // Getting a new Rustyline Util
     let helper = REPLHelper::default();
 
-    // Initializing Rustyline Editor with set config and set util
     let mut repl = match Editor::with_config(config) {
         Ok(editor) => editor,
         Err(e) => {
@@ -44,7 +42,6 @@ fn main() -> rustyline::Result<()> {
         println!("No previous history.");
     }
 
-    // Friendly intro message for the user
     println!("{} - {}\n{}", crate_name!(), crate_version!(), "Developed by Huzaifa Naseer.");
 
     loop {
@@ -55,7 +52,6 @@ fn main() -> rustyline::Result<()> {
         let input = repl.readline(&p);
         match input {
             Ok(command) => {
-                // Add the input to history
                 if let Err(e) = repl.add_history_entry(command.as_str()) {
                     eprintln!("Failed to add history entry: {}", e);
                 }
@@ -85,8 +81,6 @@ fn main() -> rustyline::Result<()> {
             }
         }
     }
-
-    // Save history before exiting
     if let Err(err) = repl.save_history("history") {
         println!("Error saving history: {:?}", err);
     }
