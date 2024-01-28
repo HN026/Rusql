@@ -23,7 +23,6 @@ fn main() -> rustyline::Result<()> {
         .about(crate_description!())
         .get_matches();
 
-    
     let config = get_config();
 
     let helper = REPLHelper::default();
