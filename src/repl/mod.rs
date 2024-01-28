@@ -14,7 +14,6 @@ pub enum CommandType {
     MetaCommand(MetaCommand),
 }
 
-
 pub fn get_command_type(input: &String) -> Result<CommandType, &'static str> {
     match input.starts_with(".") {
         true => Ok(CommandType::MetaCommand(MetaCommand::new(input.to_owned()))),
@@ -46,7 +45,6 @@ impl Hinter for REPLHelper {
         self.history_hinter.hint(line, pos, _ctx)
     }
 }
-
 
 impl Highlighter for REPLHelper {
     fn highlight_prompt<'b, 's: 'b, 'p: 'b>(
