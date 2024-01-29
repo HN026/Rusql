@@ -1,4 +1,4 @@
-use sqlparser::ast::{ Expr, Query, SetExpr, Statement, Value, Values };
+use sqlparser::ast::{ Expr, SetExpr, Statement, Value, Values };
 
 use crate::error::{ Result, RUSQLError };
 
@@ -12,50 +12,59 @@ pub struct InsertQuery {
 impl InsertQuery {
     pub fn new(statement: &Statement) -> Result<InsertQuery> {
         match statement {
-            Statement::Insert { table_name, columns, source, .. } => {
-                let tname = table_name.to_string();
-                let mut col_names = columns
+            Statement::Insert { table_name, columns, source: Some(query), .. } => {
+                let table_name = table_name.to_string();
+                let columns = columns
                     .iter()
                     .map(|col| col.to_string())
-                    .collect::<Vec<String>>();
-                let mut rowvec: Vec<Vec<String>> = vec![];
-
-                if let Some(query) = source {
-                    if let Query { body: SetExpr::Values(Values { rows, .. }), .. } = &**query {
-                        for row in rows {
-                            let row_set: Vec<String> = row
-                                .iter()
-                                .map(|e| Self::parse_value_to_string(e))
-                                .collect();
-                            rowvec.push(row_set);
-                        }
-                    }
-                } else {
-                    return Err(RUSQLError::Internal("Error parsing Insert Query".to_string()));
-                }
+                    .collect();
+                let rowvec = extract_values(&query.body)?;
 
                 Ok(InsertQuery {
-                    table_name: tname,
-                    columns: col_names,
+                    table_name,
+                    columns,
                     rows: rowvec,
                 })
             }
-            _ => Err(RUSQLError::Internal("Error parsing Insert Query".to_string())),
+            _ => Err(RUSQLError::Internal("Error Parsing Insert Query.".to_string())),
         }
     }
+}
 
-    fn parse_value_to_string(expr: &Expr) -> String {
-        match expr {
-            Expr::Value(value) =>
-                match value {
-                    Value::Number(n, _) => n.to_string(),
-                    Value::Boolean(b) => b.to_string(),
-                    Value::SingleQuotedString(s) => s.to_string(),
-                    Value::Null => "NULL".to_string(),
-                    _ => "".to_string(),
-                }
-            Expr::Identifier(i) => i.to_string(),
-            _ => "".to_string(),
+fn extract_values(body: &SetExpr) -> Result<Vec<Vec<String>>> {
+    if let SetExpr::Values(Values { explicit_row: _, rows }) = body {
+        Ok(
+            rows
+                .iter()
+                .map(|row| extract_row_values(row))
+                .collect()
+        )
+    } else {
+        Err(RUSQLError::Internal("Error extracting values".to_string()))
+    }
+}
+
+fn extract_row_values(row: &[Expr]) -> Vec<String> {
+    row.iter()
+        .filter_map(|expr| {
+            match expr {
+                Expr::Value(v) => Some(match_value(v)),
+                Expr::Identifier(i) => Some(i.to_string()),
+                _ => None,
+            }
+        })
+        .collect()
+}
+
+fn match_value(value: &Value) -> String {
+    match value {
+        Value::Number(n, _) => n.to_string(),
+        Value::Boolean(b) => b.to_string(),
+        Value::SingleQuotedString(s) => s.to_string(),
+        Value::Null => "Null".to_string(),
+        _ => {
+            eprintln!("Unhandled Value variant: {:?}", value);
+            String::new()
         }
     }
 }
