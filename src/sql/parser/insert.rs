@@ -1,5 +1,4 @@
 use sqlparser::ast::{ Expr, SetExpr, Statement, Value, Values };
-
 use crate::error::{ Result, RUSQLError };
 
 #[derive(Debug)]
