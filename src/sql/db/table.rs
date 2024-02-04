@@ -72,6 +72,60 @@ fn rusql_insert_datatype_based_row(
     }
 }
 
+fn create_error(message: &str) -> Result<()> {
+    Err(RUSQLError::General(String::from(message)))
+}
+
+fn validate_column_unique_constraint(column: &mut Column, name: &str, val: &str) -> Result<()> {
+    if !column.is_unique {
+        return Ok(());
+    }
+
+    let col_idx = &column.index;
+    match col_idx {
+        Index::Integer(index) => {
+            if index.contains_key(&val.parse::<i64>().unwrap()) {
+                return create_error(
+                    &format!(
+                        "Error: Unique constraint violation for column {}. Value {} already exists.",
+                        name,
+                        val
+                    )
+                );
+            }
+        }
+
+        Index::Text(index) => {
+            if index.contains_key(val) {
+                return create_error(
+                    &format!(
+                        "Error: Unique constraint violation for column {}. Value {} already exists.",
+                        name,
+                        val
+                    )
+                );
+            }
+        }
+
+        Index::Real(index) => {
+            if index.contains_key(&val.parse::<f64>().unwrap()) {
+                return create_error(
+                    &format!(
+                        "Error: Unique constaint violation for column {}. Value {} already exists.",
+                        name,
+                        val
+                    )
+                );
+            }
+        }
+
+        Index::None => {
+            return create_error(&format!("Error: Cannot find index for column {}. ", name));
+        }
+    }
+    Ok(())
+}
+
 impl Table {
     pub fn new(create_query: CreateQuery) -> Self {
         let table_name = create_query.table_name;
@@ -113,5 +167,43 @@ impl Table {
         }
     }
 
-    // TODO: Row related functions
+    pub fn contains_column(&self, column: String) -> bool {
+        self.columns.iter().any(|col| col.column_name == column)
+    }
+
+    pub fn get_column(&self, column_name: String) -> Result<&Column> {
+        if
+            let Some(column) = self.columns
+                .iter()
+                .filter(|c| c.column_name == column_name)
+                .collect::<Vec<&Column>>()
+                .first()
+        {
+            Ok(column)
+        } else {
+            Err(RUSQLError::General(String::from("Column not found.")))
+        }
+    }
+
+    pub fn get_column_mut<'a>(&mut self, column_name: String) -> Result<&mut Column> {
+        for elem in self.columns.iter_mut() {
+            if elem.column_name == column_name {
+                return Ok(elem);
+            }
+        }
+        Err(RUSQLError::General(String::from("Column not found.")))
+    }
+
+    pub fn validate__unique_constraint(
+        &mut self,
+        cols: &Vec<String>,
+        values: &Vec<String>
+    ) -> Result<()> {
+        for (idx, name) in cols.iter().enumerate() {
+            let column = self.get_column_mut(name.to_string()).unwrap();
+            let val = &values[idx];
+            validate_column_unique_constraint(column, name, val)?;
+        }
+        Ok(())
+    }
 }
