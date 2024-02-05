@@ -206,4 +206,145 @@ impl Table {
         }
         Ok(())
     }
+
+    pub fn insert_row(&mut self, col: &Vec<String>, values: &Vec<String>) {
+        let mut next_rowid = self.last_rowid + i64::from(1);
+
+        if self.primary_key != "-1" {
+            next_rowid = self.handle_primary_key(cols, values, next_rowid);
+        }
+
+        self.handle_missing_columns(cols, values, next_rowid);
+        self.last_rowid = next_rowid;
+    }
+
+    pub fn handle_primary_key(
+        &mut self,
+        cols: &Vec<String>,
+        values: &Vec<String>,
+        next_rowid: i64
+    ) -> i64 {
+        let mut next_rowid = next_rowid;
+        if !cols.iter().any(|col| col == &self.primary_key) {
+            next_rowid = self.auto_assign_primary_key(next_rowid);
+        } else {
+            next_rowid = self.assign_primary_key_from_values(cols, values, next_rowid);
+        }
+        next_rowid
+    }
+
+    pub fn auto_assign_primary_key(&mut self, next_rowid: i64) -> i64 {
+        let rows_clone = Rc::clone(&self.rows);
+        let mut rows_data = rows_clone.as_ref().borrow_mut();
+        let mut table_col_data = row_data.get_mut(&self.primary_key).unwrap();
+        let column_headers = self.get_column_mut(self.primary_key.to_string()).unwrap();
+        let col_index = column_headers.get_mut_index();
+
+        match &mut table_col_data {
+            Row::Integer(tree) => {
+                let val = next_rowid as i32;
+                tree.insert(next_rowid.clone(), val);
+                if let Index::Integer(index) = col_index {
+                    index.insert(val, next_rowid.clone());
+                }
+            }
+            _ => {}
+        }
+        next_rowid
+    }
+
+    pub fn assign_primary_key_from_values(
+        &mut self,
+        cols: &Vec<String>,
+        values: &Vec<String>,
+        next_rowid: i64
+    ) -> i64 {
+        let mut next_rowid = next_rowid;
+        let rows_clone = Rc::clone(&self.rows);
+        let mut row_data = rows_clone.as_ref().borrow_mut();
+        let mut table_col_data = row_data.get_mut(&self.primary_key).unwrap();
+
+        match &mut table_col_data {
+            Row::Integer(_) => {
+                for i in 0..cols.len() {
+                    let key = &cols[i];
+                    if key == &self.primary_key {
+                        let val = &values[i];
+                        next_rowid = val.parse::<i64>().unwrap();
+                    }
+                }
+            }
+            _ => {}
+        }
+        next_rowid
+    }
+
+    pub fn handle_missing_columns(
+        &mut self,
+        cols: &Vec<String>,
+        values: &Vec<String>,
+        next_rowid: i64
+    ) {
+        let column_names = self.columns
+            .iter()
+            .map(|col| col.column_name.to_string())
+            .collect::<Vec<String>>();
+
+        let mut j: usize = 0;
+
+        for i in 0..column_names.len() {
+            let mut val = String::from("Null");
+            let key = &column_names[i];
+
+            if let Some(key) = &cols.get(j) {
+                if &key.to_string() == &column_names[i] {
+                    val = values[j].to_string();
+                    j += 1;
+                } else {
+                    if &self.primary_key == &column_names[i] {
+                        continue;
+                    }
+                }
+            } else {
+                if &self.primary_key == &column_names[i] {
+                    continue;
+                }
+            }
+
+            self.insert_value_into_column(key, val, next_rowid);
+        }
+    }
+
+    pub fn insert_value_into_column(&mut self, key: &String, val: String, next_rowid: i64) {
+        let rows_clone = Rc::clone(&self.rows);
+        let mut row_data = rows_clone.as_ref().borrow_mut();
+        let mut table_col_data = row_data.get_mut(key).unwrap();
+        let column_headers = self.get_column_mut(key.to_string()).unwrap();
+        let col_index = column_headers.get_mut_index();
+
+        match &mut table_col_data {
+            Row::Integer(tree) => {
+                let val = val.parse::<i32>().unwrap();
+                tree.insert(next_rowid.clone(), val);
+                if let Index::Integer(index) = col_index {
+                    index.insert(val, next_rowid.clone());
+                }
+            }
+            Row::Text(tree) => {
+                tree.insert(next_rowid.clone(), val.to_string());
+                if let Index::Text(index) = col_index {
+                    index.insert(val.to_string(), next_rowid.clone());
+                }
+            }
+            Row::Real(tree) => {
+                let val = val.parse::<f32>().unwrap();
+                tree.insert(next_rowid.clone(), val);
+            }
+            Row::Bool(tree) => {
+                let val = val.parse::<bool>().unwrap();
+                tree.insert(next_rowid.clone(), val);
+            }
+            Row::None => panic!("None Data found"),
+        }
+    }
 }
