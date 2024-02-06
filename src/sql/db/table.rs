@@ -1,4 +1,4 @@
-use crate::error::{ Result, RUSQLError };
+use crate::error::{ Result, SQLRiteError as RUSQLError };
 use crate::sql::parser::create::CreateQuery;
 use serde::{ Deserialize, Serialize };
 use std::cell::RefCell;
@@ -57,26 +57,36 @@ pub struct Table {
     pub primary_key: String,
 }
 
-fn rusql_insert_datatype_based_row(
+pub fn rusql_insert_datatype_based_row(
     datatype: DataType,
     col_name: String,
     table_rows: &RefCell<HashMap<String, Row>>
 ) {
     let mut table_rows_mut = table_rows.borrow_mut();
     match datatype {
-        DataType::Integer => table_rows_mut.insert(col_name, Row::Integer(BTreeMap::new())),
-        DataType::Real => table_rows_mut.insert(col_name, Row::Real(BTreeMap::new())),
-        DataType::Text => table_rows_mut.insert(col_name, Row::Text(BTreeMap::new())),
-        DataType::Bool => table_rows_mut.insert(col_name, Row::Bool(BTreeMap::new())),
-        DataType::Invalid | DataType::None => table_rows_mut.insert(col_name, Row::None),
+        DataType::Integer => {
+            table_rows_mut.insert(col_name, Row::Integer(BTreeMap::new()));
+        }
+        DataType::Real => {
+            table_rows_mut.insert(col_name, Row::Real(BTreeMap::new()));
+        }
+        DataType::Text => {
+            table_rows_mut.insert(col_name, Row::Text(BTreeMap::new()));
+        }
+        DataType::Bool => {
+            table_rows_mut.insert(col_name, Row::Bool(BTreeMap::new()));
+        }
+        DataType::Invalid | DataType::None => {
+            table_rows_mut.insert(col_name, Row::None);
+        }
     }
 }
 
-fn create_error(message: &str) -> Result<()> {
+pub fn create_error(message: &str) -> Result<()> {
     Err(RUSQLError::General(String::from(message)))
 }
 
-fn validate_column_unique_constraint(column: &mut Column, name: &str, val: &str) -> Result<()> {
+pub fn validate_column_unique_constraint(column: &mut Column, name: &str, val: &str) -> Result<()> {
     if !column.is_unique {
         return Ok(());
     }
@@ -84,7 +94,7 @@ fn validate_column_unique_constraint(column: &mut Column, name: &str, val: &str)
     let col_idx = &column.index;
     match col_idx {
         Index::Integer(index) => {
-            if index.contains_key(&val.parse::<i64>().unwrap()) {
+            if index.contains_key(&val.parse::<i32>().unwrap()) {
                 return create_error(
                     &format!(
                         "Error: Unique constraint violation for column {}. Value {} already exists.",
@@ -107,18 +117,6 @@ fn validate_column_unique_constraint(column: &mut Column, name: &str, val: &str)
             }
         }
 
-        Index::Real(index) => {
-            if index.contains_key(&val.parse::<f64>().unwrap()) {
-                return create_error(
-                    &format!(
-                        "Error: Unique constaint violation for column {}. Value {} already exists.",
-                        name,
-                        val
-                    )
-                );
-            }
-        }
-
         Index::None => {
             return create_error(&format!("Error: Cannot find index for column {}. ", name));
         }
@@ -129,7 +127,7 @@ fn validate_column_unique_constraint(column: &mut Column, name: &str, val: &str)
 impl Table {
     pub fn new(create_query: CreateQuery) -> Self {
         let table_name = create_query.table_name;
-        let mut primary_key: String = String::new("-1");
+        let mut primary_key: String = String::from("-1");
         let columns = create_query.columns;
         let mut table_cols: Vec<Column> = vec![];
         let table_rows: Rc<RefCell<HashMap<String, Row>>> = Rc::new(RefCell::new(HashMap::new()));
@@ -171,6 +169,7 @@ impl Table {
         self.columns.iter().any(|col| col.column_name == column)
     }
 
+    #[allow(dead_code)]
     pub fn get_column(&self, column_name: String) -> Result<&Column> {
         if
             let Some(column) = self.columns
@@ -194,7 +193,7 @@ impl Table {
         Err(RUSQLError::General(String::from("Column not found.")))
     }
 
-    pub fn validate__unique_constraint(
+    pub fn validate_unique_constraint(
         &mut self,
         cols: &Vec<String>,
         values: &Vec<String>
@@ -207,7 +206,7 @@ impl Table {
         Ok(())
     }
 
-    pub fn insert_row(&mut self, col: &Vec<String>, values: &Vec<String>) {
+    pub fn insert_row(&mut self, cols: &Vec<String>, values: &Vec<String>) {
         let mut next_rowid = self.last_rowid + i64::from(1);
 
         if self.primary_key != "-1" {
@@ -235,7 +234,7 @@ impl Table {
 
     pub fn auto_assign_primary_key(&mut self, next_rowid: i64) -> i64 {
         let rows_clone = Rc::clone(&self.rows);
-        let mut rows_data = rows_clone.as_ref().borrow_mut();
+        let mut row_data = rows_clone.as_ref().borrow_mut();
         let mut table_col_data = row_data.get_mut(&self.primary_key).unwrap();
         let column_headers = self.get_column_mut(self.primary_key.to_string()).unwrap();
         let col_index = column_headers.get_mut_index();
@@ -345,6 +344,206 @@ impl Table {
                 tree.insert(next_rowid.clone(), val);
             }
             Row::None => panic!("None Data found"),
+        }
+    }
+
+    /// Print the table schema to standard output in a pretty formatted way
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let table = Table::new(payload);
+    /// table.print_table_schema();
+    ///
+    /// Prints to standard output:
+    ///    +-------------+-----------+-------------+--------+----------+
+    ///    | Column Name | Data Type | PRIMARY KEY | UNIQUE | NOT NULL |
+    ///    +-------------+-----------+-------------+--------+----------+
+    ///    | id          | Integer   | true        | true   | true     |
+    ///    +-------------+-----------+-------------+--------+----------+
+    ///    | name        | Text      | false       | true   | false    |
+    ///    +-------------+-----------+-------------+--------+----------+
+    ///    | email       | Text      | false       | false  | false    |
+    ///    +-------------+-----------+-------------+--------+----------+
+    /// ```
+    ///
+    pub fn print_table_schema(&self) -> Result<usize> {
+        let mut table = PrintTable::new();
+        table.add_row(row!["Column Name", "Data Type", "PRIMARY KEY", "UNIQUE", "NOT NULL"]);
+
+        for col in &self.columns {
+            table.add_row(
+                row![col.column_name, col.datatype, col.is_pk, col.is_unique, col.not_null]
+            );
+        }
+
+        table.printstd();
+        Ok(self.columns.len())
+    }
+
+    /// Print the table data to standard output in a pretty formatted way
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let db_table = db.get_table_mut(table_name.to_string()).unwrap();
+    /// db_table.print_table_data();
+    ///
+    /// Prints to standard output:
+    ///     +----+---------+------------------------+
+    ///     | id | name    | email                  |
+    ///     +----+---------+------------------------+
+    ///     | 1  | "Huzaifa"  | "huzaifa@mail.com"        |
+    ///     +----+---------+------------------------+
+    ///     | 10 | "sadaf"   | "sadaf@mail.com"         |
+    ///     +----+---------+------------------------+
+    ///     | 11 | "bro"  | "bro@mail.com"        |
+    ///     +----+---------+------------------------+
+    /// ```
+    ///
+
+    pub fn print_table_data(&self) {
+        let mut print_table = PrintTable::new();
+
+        let column_names = self.columns
+            .iter()
+            .map(|col| col.column_name.to_string())
+            .collect::<Vec<String>>();
+
+        let header_row = PrintRow::new(
+            column_names
+                .iter()
+                .map(|col| PrintCell::new(&col))
+                .collect::<Vec<PrintCell>>()
+        );
+
+        let rows_clone = Rc::clone(&self.rows);
+        let row_data = rows_clone.as_ref().borrow();
+        let first_col_data = row_data.get(&self.columns.first().unwrap().column_name).unwrap();
+        let num_rows = first_col_data.count();
+        let mut print_table_rows: Vec<PrintRow> = vec![PrintRow::new(vec![]); num_rows];
+
+        for col_name in &column_names {
+            let col_val = row_data.get(col_name).expect("Column not found in table rows");
+            let columns: Vec<String> = col_val.get_serialized_col_data();
+
+            for i in 0..num_rows {
+                if let Some(cell) = &columns.get(i) {
+                    print_table_rows[i].add_cell(PrintCell::new(cell));
+                } else {
+                    print_table_rows[i].add_cell(PrintCell::new(""));
+                }
+            }
+        }
+
+        print_table.add_row(header_row);
+        for row in print_table_rows {
+            print_table.add_row(row);
+        }
+
+        print_table.printstd();
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct Column {
+    pub column_name: String,
+    pub datatype: DataType,
+    pub is_pk: bool,
+    pub not_null: bool,
+    pub is_unique: bool,
+    pub is_indexed: bool,
+    pub index: Index,
+}
+
+impl Column {
+    pub fn new(
+        name: String,
+        datatype: String,
+        is_pk: bool,
+        not_null: bool,
+        is_unique: bool
+    ) -> Self {
+        let dt = DataType::new(datatype);
+        let index = match dt {
+            DataType::Integer => Index::Integer(BTreeMap::new()),
+            DataType::Bool => Index::None,
+            DataType::Text => Index::Text(BTreeMap::new()),
+            DataType::Real => Index::None,
+            DataType::Invalid => Index::None,
+            DataType::None => Index::None,
+        };
+
+        Column {
+            column_name: name,
+            datatype: dt,
+            is_pk,
+            not_null,
+            is_unique,
+            is_indexed: if is_pk {
+                true
+            } else {
+                false
+            },
+            index,
+        }
+    }
+
+    pub fn get_mut_index(&mut self) -> &mut Index {
+        return &mut self.index;
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub enum Index {
+    Integer(BTreeMap<i32, i64>),
+    Text(BTreeMap<String, i64>),
+    None,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub enum Row {
+    Integer(BTreeMap<i64, i32>),
+    Text(BTreeMap<i64, String>),
+    Real(BTreeMap<i64, f32>),
+    Bool(BTreeMap<i64, bool>),
+    None,
+}
+
+impl Row {
+    fn get_serialized_col_data(&self) -> Vec<String> {
+        match self {
+            Row::Integer(cd) =>
+                cd
+                    .iter()
+                    .map(|(_i, v)| v.to_string())
+                    .collect(),
+            Row::Real(cd) =>
+                cd
+                    .iter()
+                    .map(|(_i, v)| v.to_string())
+                    .collect(),
+            Row::Text(cd) =>
+                cd
+                    .iter()
+                    .map(|(_i, v)| v.to_string())
+                    .collect(),
+            Row::Bool(cd) =>
+                cd
+                    .iter()
+                    .map(|(_i, v)| v.to_string())
+                    .collect(),
+            Row::None => panic!("Data not found"),
+        }
+    }
+
+    fn count(&self) -> usize {
+        match self {
+            Row::Integer(cd) => cd.len(),
+            Row::Real(cd) => cd.len(),
+            Row::Text(cd) => cd.len(),
+            Row::Bool(cd) => cd.len(),
+            Row::None => panic!("Data not found"),
         }
     }
 }
