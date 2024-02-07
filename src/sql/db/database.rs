@@ -37,4 +37,12 @@ impl Database {
             Err(RUSQLError::General(String::from("Table not found.")))
         }
     }
+
+    pub fn drop_table(&mut self, table_name: String) -> Result<()> {
+        if self.tables.remove(&table_name).is_none() {
+            Err(RUSQLError::General(String::from("Table not found.")))
+        } else {
+            Ok(())
+        }
+    }
 }

@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 use std::result;
+use sqlparser::parser::ParserError;
 
 pub type Result<T> = result::Result<T, RUSQLError>;
 
@@ -11,4 +12,5 @@ pub enum RUSQLError {
     #[error("General error: {0}")] General(String),
     #[error("Internal error: {0}")] Internal(String),
     #[error("Unknown command error: {0}")] UnknownCommand(String),
+    #[error("Parser error: {0:?}")] SqlError(#[from] ParserError),
 }
