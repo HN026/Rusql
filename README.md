@@ -47,7 +47,7 @@ First off, thank you for considering contributing to RUSQL. It's people like you
 
 ## Where do I go from here?
 
-If you've noticed a bug or have a feature request, make sure to check our [Issues](https://github.com/your_username/RUSQL/issues) to see if someone else in the community has already created a ticket. If not, go ahead and make one!
+If you've noticed a bug or have a feature request, make sure to check our [Issues](https://github.com/HN026/Rusql/issues) to see if someone else in the community has already created a ticket. If not, go ahead and make one!
 
 ## Fork & create a branch
 
