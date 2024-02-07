@@ -70,7 +70,7 @@ For usage examples, please refer to the following screenshots:
 #### DELETE TABLE
 ![eg3](./util/Images/eg3.png)
 
-You can also find SQL schema examples in the [`/util/Schemas/schema.sql`](/util/Schemas/schema.sql) file.
+You can also find SQL schema examples in the [Schemas](/util/Schemas/schema.sql) file.
 
 ## License
 
