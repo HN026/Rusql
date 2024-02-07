@@ -5,6 +5,7 @@ use std::cell::RefCell;
 use std::collections::{ BTreeMap, HashMap };
 use std::fmt;
 use std::rc::Rc;
+use colored::*;
 
 use prettytable::{ Cell as PrintCell, Row as PrintRow, Table as PrintTable };
 
@@ -377,10 +378,12 @@ impl Table {
             );
         }
 
-        table.printstd();
+        // Convert the table to a string and color it blue
+        let table_string = format!("{}", table).blue();
+
+        println!("{}", table_string);
         Ok(self.columns.len())
     }
-
     /// Print the table data to standard output in a pretty formatted way
     ///
     /// # Example
@@ -441,7 +444,9 @@ impl Table {
             print_table.add_row(row);
         }
 
-        print_table.printstd();
+        let table_string = format!("{}", print_table).blue();
+
+        println!("{}", table_string);
     }
 }
 

@@ -1,12 +1,16 @@
 extern crate clap;
 extern crate colored;
 #[macro_use]
+extern crate prettytable;
 mod error;
 mod repl;
 mod meta_command;
+mod sql;
 
 use repl::{ get_command_type, get_config, REPLHelper, CommandType };
 use meta_command::handle_meta_command;
+use sql::db::database::Database;
+use sql::process_command;
 
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
@@ -41,7 +45,19 @@ fn main() -> rustyline::Result<()> {
         println!("No previous history.");
     }
 
-    println!("{} - {}\n{}", crate_name!(), crate_version!(), "Developed by Huzaifa Naseer.");
+    println!(
+        "{}",
+        format!(
+            "{} - {}\n{}\nUse .help to list metacommands.\nFor more information on how it works, refer to /util/Schemas/schema.sql.",
+            crate_name!(),
+            crate_version!(),
+            "Developed by Huzaifa Naseer."
+        )
+            .blue()
+            .bold()
+    );
+
+    let mut db = Database::new("tempdbase".to_string());
 
     loop {
         let p = "RUSQL>> ".yellow().bold();
@@ -55,14 +71,17 @@ fn main() -> rustyline::Result<()> {
                     eprintln!("Failed to add history entry: {}", e);
                 }
                 match get_command_type(&command.trim().to_owned()) {
-                    Ok(CommandType::MetaCommand(cmd)) => {
+                    CommandType::MetaCommand(cmd) => {
                         let _ = match handle_meta_command(cmd, &mut repl) {
                             Ok(msg) => println!("{}", msg),
                             Err(err) => eprintln!("An error occured: {}", err),
                         };
                     }
-                    Err(e) => {
-                        eprintln!("Failed to get command type: {}", e);
+                    CommandType::SQLCommand(_cmd) => {
+                        let _ = match process_command(&command, &mut db) {
+                            Ok(msg) => println!("{}", msg),
+                            Err(err) => eprintln!("An error occured: {}", err),
+                        };
                     }
                 }
             }
