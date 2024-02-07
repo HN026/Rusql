@@ -3,6 +3,7 @@ pub mod db;
 
 use parser::create::CreateQuery;
 use parser::insert::InsertQuery;
+use colored::*;
 
 use sqlparser::ast::Statement;
 use sqlparser::dialect::SQLiteDialect;
@@ -45,7 +46,7 @@ pub fn process_command(query: &str, db: &mut Database) -> Result<String> {
     if ast.len() > 1 {
         return Err(
             RUSQLError::SqlError(
-                ParserError::ParserError(format!("Expected one statement, found {}", ast.len()))
+                ParserError::ParserError(format!("Expected one statement, found {}", ast.len()).red().to_string())
             )
         );
     }
@@ -59,12 +60,12 @@ pub fn process_command(query: &str, db: &mut Database) -> Result<String> {
             if let sqlparser::ast::ObjectType::Table = object_type {
                 drop_table(&query, db)
             } else {
-                Err(RUSQLError::NotImplemented("Only DROP TABLE is supported".to_string()))
+                Err(RUSQLError::NotImplemented("Only DROP TABLE is supported".red().to_string()))
             }
         }
-        Statement::Query(_query) => Ok(String::from("Not Implemented yet.".to_string())),
-        Statement::Delete { .. } => Ok(String::from("Not Implemented yet.".to_string())),
-        _ => Err(RUSQLError::NotImplemented("SQL command not supported yet.".to_string())),
+        Statement::Query(_query) => Ok(String::from("Not Implemented yet.").yellow().to_string()),
+        Statement::Delete { .. } => Ok(String::from("Not Implemented yet.").yellow().to_string()),
+        _ => Err(RUSQLError::NotImplemented("SQL command not supported yet.".red().to_string())),
     }
 }
 
@@ -73,14 +74,14 @@ fn create_table(query: &Statement, db: &mut Database) -> Result<String> {
     let table_name = create_query.table_name.clone();
 
     if db.contains_table(table_name.clone()) {
-        return Err(RUSQLError::Internal(format!("Table {} already exists.", table_name)));
+        return Err(RUSQLError::Internal(format!("Table {} already exists.", table_name).red().to_string()));
     }
 
     let table = Table::new(create_query);
     table.print_table_schema()?;
     db.tables.insert(table_name.to_string(), table);
 
-    Ok(String::from("CREATE TABLE Statement executed."))
+    Ok(String::from("CREATE TABLE Statement executed.").green().to_string())
 }
 
 fn insert_into_table(query: &Statement, db: &mut Database) -> Result<String> {
@@ -90,10 +91,10 @@ fn insert_into_table(query: &Statement, db: &mut Database) -> Result<String> {
     let values = insert_query.rows;
     let db_table = db
         .get_table_mut(table_name.to_string())
-        .or_else(|_| { Err(RUSQLError::Internal("Table doesn't exist.".to_string())) })?;
+        .or_else(|_| { Err(RUSQLError::Internal("Table doesn't exist.".red().to_string())) })?;
 
     if !columns.iter().all(|column| db_table.contains_column(column.to_string())) {
-        return Err(RUSQLError::Internal("Cannot Insert, column doesn't exist.".to_string()));
+        return Err(RUSQLError::Internal("Cannot Insert, column doesn't exist.".red().to_string()));
     }
 
     for value in &values {
@@ -104,7 +105,7 @@ fn insert_into_table(query: &Statement, db: &mut Database) -> Result<String> {
                         "Column count and value count mismatch. Columns: {}, Values: {}",
                         columns.len(),
                         value.len()
-                    )
+                    ).red().to_string()
                 )
             );
         }
@@ -112,14 +113,14 @@ fn insert_into_table(query: &Statement, db: &mut Database) -> Result<String> {
         db_table
             .validate_unique_constraint(&columns, value)
             .map_err(|err| {
-                RUSQLError::Internal(format!("Unique key constraint violation: {}", err))
+                RUSQLError::Internal(format!("Unique key constraint violation: {}", err).red().to_string())
             })?;
 
         db_table.insert_row(&columns, &value);
     }
 
     db_table.print_table_data();
-    Ok(String::from("INSERT Statement executed."))
+    Ok(String::from("INSERT Statement executed.").green().to_string())
 }
 
 fn drop_table(query: &Statement, db: &mut Database) -> Result<String> {
@@ -127,14 +128,14 @@ fn drop_table(query: &Statement, db: &mut Database) -> Result<String> {
         if let sqlparser::ast::ObjectType::Table = object_type {
             if let Some(table_name) = names.get(0) {
                 db.drop_table(table_name.to_string())?;
-                Ok(String::from("DROP TABLE Statement executed."))
+                Ok(String::from("DROP TABLE Statement executed.").green().to_string())
             } else {
-                Err(RUSQLError::Internal("Table name not found.".to_string()))
+                Err(RUSQLError::Internal("Table name not found.".red().to_string()))
             }
         } else {
-            Err(RUSQLError::Internal("Only DROP TABLE is supported.".to_string()))
+            Err(RUSQLError::Internal("Only DROP TABLE is supported.".red().to_string()))
         }
     } else {
-        Err(RUSQLError::Internal("Invalid Drop Statement".to_string()))
+        Err(RUSQLError::Internal("Invalid Drop Statement".red().to_string()))
     }
 }

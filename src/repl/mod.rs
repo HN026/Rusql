@@ -1,4 +1,5 @@
 use crate::meta_command::*;
+use crate::sql::*;
 
 use std::borrow::Cow::{ self, Borrowed, Owned };
 
@@ -12,12 +13,13 @@ use rustyline_derive::{ Completer, Helper };
 #[derive(Debug, PartialEq)]
 pub enum CommandType {
     MetaCommand(MetaCommand),
+    SQLCommand(SQLCommand),
 }
 
-pub fn get_command_type(input: &String) -> Result<CommandType, &'static str> {
+pub fn get_command_type(input: &String) -> CommandType {
     match input.starts_with(".") {
-        true => Ok(CommandType::MetaCommand(MetaCommand::new(input.to_owned()))),
-        false => Err("Invalid command type."),
+        true => CommandType::MetaCommand(MetaCommand::new(input.to_owned())),
+        false => CommandType::SQLCommand(SQLCommand::new(input.to_owned())),
     }
 }
 

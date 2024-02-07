@@ -51,7 +51,7 @@ impl CreateQuery {
 
                     for column_option in &col.options {
                         match column_option.option {
-                            ColumnOption::Unique { is_primary } => {
+                            ColumnOption::Unique { is_primary, ..} => {
                                 let (new_is_pk, new_is_unique, new_not_null) = handle_unique_option(
                                     is_primary,
                                     &datatype,

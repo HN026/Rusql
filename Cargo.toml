@@ -20,4 +20,5 @@ rustyline-derive = "0.10.0"
 thiserror = "1.0.56"
 colored = "2.1.0"
 sqlparser = "0.43.1"
+serde = { version = "1.0.195", features = ["derive", "rc"] }
 
