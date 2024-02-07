@@ -1,4 +1,4 @@
-use crate::error::{ Result, SQLRiteError as RUSQLError };
+use crate::error::{ Result, RUSQLError };
 use crate::sql::parser::create::CreateQuery;
 use serde::{ Deserialize, Serialize };
 use std::cell::RefCell;
