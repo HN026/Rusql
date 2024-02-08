@@ -58,3 +58,7 @@ VALUES (1, "John Doe", 1, 2, "2022-01-01"),
 -- DROP_TABLE.sql
 DROP TABLE orders;
 
+
+-- Listing tables in the database
+LIST TABLES;
+
