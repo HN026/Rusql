@@ -13,6 +13,9 @@ use crate::error::{ Result, RUSQLError };
 use crate::sql::db::database::Database;
 use crate::sql::db::table::Table;
 
+use prettytable::{ Table as tb, Row, Cell };
+use prettytable::format;
+
 #[derive(Debug, PartialEq)]
 pub enum SQLCommand {
     Insert(String),
@@ -21,6 +24,7 @@ pub enum SQLCommand {
     CreateTable(String),
     DropTable(String),
     Select(String),
+    ListTables,
     Unknown(String),
 }
 
@@ -33,6 +37,7 @@ impl SQLCommand {
             "delete" => SQLCommand::Delete(command),
             "create" => SQLCommand::CreateTable(command),
             "drop" => SQLCommand::DropTable(command),
+            "list" => SQLCommand::ListTables,
             "select" => SQLCommand::Select(command),
             _ => SQLCommand::Unknown(command),
         }
@@ -40,13 +45,18 @@ impl SQLCommand {
 }
 
 pub fn process_command(query: &str, db: &mut Database) -> Result<String> {
+    if query.trim().to_uppercase() == "LIST TABLES;" {
+        return list_tables(db);
+    }
     let dialect = SQLiteDialect {};
     let mut ast = Parser::parse_sql(&dialect, &query).map_err(RUSQLError::from)?;
 
     if ast.len() > 1 {
         return Err(
             RUSQLError::SqlError(
-                ParserError::ParserError(format!("Expected one statement, found {}", ast.len()).red().to_string())
+                ParserError::ParserError(
+                    format!("Expected one statement, found {}", ast.len()).red().to_string()
+                )
             )
         );
     }
@@ -74,7 +84,9 @@ fn create_table(query: &Statement, db: &mut Database) -> Result<String> {
     let table_name = create_query.table_name.clone();
 
     if db.contains_table(table_name.clone()) {
-        return Err(RUSQLError::Internal(format!("Table {} already exists.", table_name).red().to_string()));
+        return Err(
+            RUSQLError::Internal(format!("Table {} already exists.", table_name).red().to_string())
+        );
     }
 
     let table = Table::new(create_query);
@@ -105,7 +117,9 @@ fn insert_into_table(query: &Statement, db: &mut Database) -> Result<String> {
                         "Column count and value count mismatch. Columns: {}, Values: {}",
                         columns.len(),
                         value.len()
-                    ).red().to_string()
+                    )
+                        .red()
+                        .to_string()
                 )
             );
         }
@@ -113,7 +127,9 @@ fn insert_into_table(query: &Statement, db: &mut Database) -> Result<String> {
         db_table
             .validate_unique_constraint(&columns, value)
             .map_err(|err| {
-                RUSQLError::Internal(format!("Unique key constraint violation: {}", err).red().to_string())
+                RUSQLError::Internal(
+                    format!("Unique key constraint violation: {}", err).red().to_string()
+                )
             })?;
 
         db_table.insert_row(&columns, &value);
@@ -138,4 +154,24 @@ fn drop_table(query: &Statement, db: &mut Database) -> Result<String> {
     } else {
         Err(RUSQLError::Internal("Invalid Drop Statement".red().to_string()))
     }
+}
+
+fn list_tables(db: &Database) -> Result<String> {
+    let mut table = tb::new();
+    table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+    table.set_titles(row!["S.No", "Table Name"]);
+
+    for (i, table_name) in db.tables.keys().enumerate() {
+        table.add_row(
+            Row::new(
+                vec![
+                    Cell::new(&(i + 1).to_string()).style_spec("Fb"),
+                    Cell::new(table_name).style_spec("Fb")
+                ]
+            )
+        );
+    }
+    table.printstd();
+
+    Ok(String::from("LIST TABLES Statement executed.").green().to_string())
 }

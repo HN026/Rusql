@@ -29,6 +29,7 @@ cargo run
 - `CREATE TABLE`: Create a new table with specified columns and data types.
 - `DROP TABLE`: Delete an existing table.
 - `INSERT`: Insert new data into a table.
+- `LIST TABLES`: Lists the Tables Inside the Database.
 - Command History: View the history of commands, with suggestions and persistent saving across sessions.
 
 ## Future Improvements
@@ -64,11 +65,16 @@ git checkout -b feature/123-AddNewFeature
 For usage examples, please refer to the following screenshots:
 
 #### CREATE TABLE
-![eg1](./util/Images/eg1.png)
+<img src="./util/Images/eg1.png" width="500">
+
 #### INSERT INTO TABLE
-![eg2](./util/Images/eg2.png)
+<img src="./util/Images/eg2.png" width="500">
+
 #### DELETE TABLE
-![eg3](./util/Images/eg3.png)
+<img src="./util/Images/eg3.png" width="500">
+
+#### LIST TABLES
+<img src="./util/Images/eg4.png" width="500">
 
 You can also find SQL schema examples in the [Schemas](/util/Schemas/schema.sql) file.
 
