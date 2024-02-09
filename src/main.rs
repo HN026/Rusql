@@ -3,20 +3,20 @@ extern crate colored;
 #[macro_use]
 extern crate prettytable;
 mod error;
-mod repl;
 mod meta_command;
+mod repl;
 mod sql;
 
-use repl::{ get_command_type, get_config, REPLHelper, CommandType };
 use meta_command::handle_meta_command;
+use repl::{get_command_type, get_config, CommandType, REPLHelper};
 use sql::db::database::Database;
 use sql::process_command;
 
+use colored::*;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
-use colored::*;
 
-use clap::{ crate_authors, crate_description, crate_name, crate_version, Command };
+use clap::{crate_authors, crate_description, crate_name, crate_version, Command};
 
 fn main() -> rustyline::Result<()> {
     env_logger::init();

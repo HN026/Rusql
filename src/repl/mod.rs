@@ -1,14 +1,14 @@
 use crate::meta_command::*;
 use crate::sql::*;
 
-use std::borrow::Cow::{ self, Borrowed, Owned };
+use std::borrow::Cow::{self, Borrowed, Owned};
 
 use rustyline::error::ReadlineError;
-use rustyline::highlight::{ Highlighter, MatchingBracketHighlighter };
-use rustyline::hint::{ Hinter, HistoryHinter };
-use rustyline::validate::{ Validator, ValidationContext, ValidationResult };
-use rustyline::{ CompletionType, Config, Context, EditMode };
-use rustyline_derive::{ Completer, Helper };
+use rustyline::highlight::{Highlighter, MatchingBracketHighlighter};
+use rustyline::hint::{Hinter, HistoryHinter};
+use rustyline::validate::{ValidationContext, ValidationResult, Validator};
+use rustyline::{CompletionType, Config, Context, EditMode};
+use rustyline_derive::{Completer, Helper};
 
 #[derive(Debug, PartialEq)]
 pub enum CommandType {
@@ -52,9 +52,13 @@ impl Highlighter for REPLHelper {
     fn highlight_prompt<'b, 's: 'b, 'p: 'b>(
         &'s self,
         prompt: &'p str,
-        default: bool
+        default: bool,
     ) -> Cow<'b, str> {
-        if default { Borrowed(&self.colored_prompt) } else { Borrowed(prompt) }
+        if default {
+            Borrowed(&self.colored_prompt)
+        } else {
+            Borrowed(prompt)
+        }
     }
     fn highlight_hint<'h>(&self, hint: &'h str) -> Cow<'h, str> {
         Owned("\x1b[1m".to_owned() + hint + "\x1b[m")
@@ -69,7 +73,7 @@ impl Highlighter for REPLHelper {
 
 impl Validator for REPLHelper {
     fn validate(&self, ctx: &mut ValidationContext) -> Result<ValidationResult, ReadlineError> {
-        use ValidationResult::{ Incomplete, Valid };
+        use ValidationResult::{Incomplete, Valid};
         let input = ctx.input();
         let result = if input.starts_with(".") {
             Valid(None)

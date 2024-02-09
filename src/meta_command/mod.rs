@@ -1,9 +1,9 @@
-use crate::error::{ Result, RUSQLError };
-use std::process::Command as ProcessCommand;
+use crate::error::{RUSQLError, Result};
 use crate::repl::REPLHelper;
-use rustyline::Editor;
 use rustyline::history::FileHistory;
+use rustyline::Editor;
 use std::fmt;
+use std::process::Command as ProcessCommand;
 
 #[derive(Debug, PartialEq)]
 pub enum MetaCommand {
@@ -39,38 +39,35 @@ impl MetaCommand {
 
 pub fn handle_meta_command(
     command: MetaCommand,
-    repl: &mut Editor<REPLHelper, FileHistory>
+    repl: &mut Editor<REPLHelper, FileHistory>,
 ) -> Result<String> {
     match command {
         MetaCommand::Exit => {
             repl.append_history("history").unwrap();
             std::process::exit(0);
         }
-        MetaCommand::Help =>
-            Ok(
-                format!(
-                    "{}{}{}{}{}{}",
-                    "Special Commands: \n",
-                    ".exit: Exit the REPL\n",
-                    ".help: Display this help message\n",
-                    ".cls:  Clear the screen\n",
-                    "RUSQL is a simple SQL database engine written in Rust.\n",
-                    "Version: 0.1.0\n"
-                )
-            ),
+        MetaCommand::Help => Ok(format!(
+            "{}{}{}{}{}{}",
+            "Special Commands: \n",
+            ".exit: Exit the REPL\n",
+            ".help: Display this help message\n",
+            ".cls:  Clear the screen\n",
+            "RUSQL is a simple SQL database engine written in Rust.\n",
+            "Version: 0.1.0\n"
+        )),
         MetaCommand::Cls => {
             if cfg!(target_os = "windows") {
-                ProcessCommand::new("cmd").args(&["/C", "cls"]).status().unwrap();
+                ProcessCommand::new("cmd")
+                    .args(&["/C", "cls"])
+                    .status()
+                    .unwrap();
             } else {
                 ProcessCommand::new("clear").status().unwrap();
             }
             Ok("".to_string())
         }
-        MetaCommand::Unknown =>
-            Err(
-                RUSQLError::UnknownCommand(
-                    format!("Unknown command or Invalid syntax. Type .help for more information.")
-                )
-            ),
+        MetaCommand::Unknown => Err(RUSQLError::UnknownCommand(format!(
+            "Unknown command or Invalid syntax. Type .help for more information."
+        ))),
     }
 }

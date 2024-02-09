@@ -1,5 +1,5 @@
-use sqlparser::ast::{ ColumnOption, DataType, Statement };
-use crate::error::{ Result, RUSQLError };
+use crate::error::{RUSQLError, Result};
+use sqlparser::ast::{ColumnOption, DataType, Statement};
 use std::collections::HashSet;
 
 #[derive(PartialEq, Debug)]
@@ -38,9 +38,10 @@ impl CreateQuery {
                     let name = col.name.to_string();
 
                     if !column_names.insert(name.clone()) {
-                        return Err(
-                            RUSQLError::Internal(format!("Duplicate column name: {}", &name))
-                        );
+                        return Err(RUSQLError::Internal(format!(
+                            "Duplicate column name: {}",
+                            &name
+                        )));
                     }
 
                     let datatype = data_type_as_str(&col.data_type);
@@ -51,13 +52,14 @@ impl CreateQuery {
 
                     for column_option in &col.options {
                         match column_option.option {
-                            ColumnOption::Unique { is_primary, ..} => {
-                                let (new_is_pk, new_is_unique, new_not_null) = handle_unique_option(
-                                    is_primary,
-                                    &datatype,
-                                    &parsed_columns,
-                                    &table_name
-                                )?;
+                            ColumnOption::Unique { is_primary, .. } => {
+                                let (new_is_pk, new_is_unique, new_not_null) =
+                                    handle_unique_option(
+                                        is_primary,
+                                        &datatype,
+                                        &parsed_columns,
+                                        &table_name,
+                                    )?;
 
                                 is_pk = new_is_pk;
                                 is_unique = new_is_unique;
@@ -117,17 +119,16 @@ fn handle_unique_option(
     is_primary: bool,
     datatype: &str,
     parsed_columns: &[ParsedColumn],
-    table_name: &str
+    table_name: &str,
 ) -> Result<(bool, bool, bool)> {
     if datatype != "Real" && datatype != "Bool" {
         let is_pk = is_primary;
         if is_primary {
             if parsed_columns.iter().any(|col| col.is_pk) {
-                return Err(
-                    RUSQLError::Internal(
-                        format!("Table {} already has more than one primary key", table_name)
-                    )
-                );
+                return Err(RUSQLError::Internal(format!(
+                    "Table {} already has more than one primary key",
+                    table_name
+                )));
             }
             let not_null = true;
             return Ok((is_pk, true, not_null));

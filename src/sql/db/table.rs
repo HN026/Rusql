@@ -1,13 +1,13 @@
-use crate::error::{ Result, RUSQLError };
+use crate::error::{RUSQLError, Result};
 use crate::sql::parser::create::CreateQuery;
-use serde::{ Deserialize, Serialize };
+use colored::*;
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
-use std::collections::{ BTreeMap, HashMap };
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::rc::Rc;
-use colored::*;
 
-use prettytable::{ Cell as PrintCell, Row as PrintRow, Table as PrintTable };
+use prettytable::{Cell as PrintCell, Row as PrintRow, Table as PrintTable};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub enum DataType {
@@ -61,7 +61,7 @@ pub struct Table {
 pub fn rusql_insert_datatype_based_row(
     datatype: DataType,
     col_name: String,
-    table_rows: &RefCell<HashMap<String, Row>>
+    table_rows: &RefCell<HashMap<String, Row>>,
 ) {
     let mut table_rows_mut = table_rows.borrow_mut();
     match datatype {
@@ -96,25 +96,19 @@ pub fn validate_column_unique_constraint(column: &mut Column, name: &str, val: &
     match col_idx {
         Index::Integer(index) => {
             if index.contains_key(&val.parse::<i32>().unwrap()) {
-                return create_error(
-                    &format!(
-                        "Error: Unique constraint violation for column {}. Value {} already exists.",
-                        name,
-                        val
-                    )
-                );
+                return create_error(&format!(
+                    "Error: Unique constraint violation for column {}. Value {} already exists.",
+                    name, val
+                ));
             }
         }
 
         Index::Text(index) => {
             if index.contains_key(val) {
-                return create_error(
-                    &format!(
-                        "Error: Unique constraint violation for column {}. Value {} already exists.",
-                        name,
-                        val
-                    )
-                );
+                return create_error(&format!(
+                    "Error: Unique constraint violation for column {}. Value {} already exists.",
+                    name, val
+                ));
             }
         }
 
@@ -139,20 +133,18 @@ impl Table {
                 primary_key = col_name.to_string();
             }
 
-            table_cols.push(
-                Column::new(
-                    col_name.to_string(),
-                    col.datatype.to_string(),
-                    col.is_pk,
-                    col.not_null,
-                    col.is_unique
-                )
-            );
+            table_cols.push(Column::new(
+                col_name.to_string(),
+                col.datatype.to_string(),
+                col.is_pk,
+                col.not_null,
+                col.is_unique,
+            ));
 
             rusql_insert_datatype_based_row(
                 DataType::new(col.datatype.to_string()),
                 col.name.to_string(),
-                &table_rows
+                &table_rows,
             );
         }
 
@@ -172,12 +164,12 @@ impl Table {
 
     #[allow(dead_code)]
     pub fn get_column(&self, column_name: String) -> Result<&Column> {
-        if
-            let Some(column) = self.columns
-                .iter()
-                .filter(|c| c.column_name == column_name)
-                .collect::<Vec<&Column>>()
-                .first()
+        if let Some(column) = self
+            .columns
+            .iter()
+            .filter(|c| c.column_name == column_name)
+            .collect::<Vec<&Column>>()
+            .first()
         {
             Ok(column)
         } else {
@@ -197,7 +189,7 @@ impl Table {
     pub fn validate_unique_constraint(
         &mut self,
         cols: &Vec<String>,
-        values: &Vec<String>
+        values: &Vec<String>,
     ) -> Result<()> {
         for (idx, name) in cols.iter().enumerate() {
             let column = self.get_column_mut(name.to_string()).unwrap();
@@ -222,7 +214,7 @@ impl Table {
         &mut self,
         cols: &Vec<String>,
         values: &Vec<String>,
-        next_rowid: i64
+        next_rowid: i64,
     ) -> i64 {
         let mut next_rowid = next_rowid;
         if !cols.iter().any(|col| col == &self.primary_key) {
@@ -257,7 +249,7 @@ impl Table {
         &mut self,
         cols: &Vec<String>,
         values: &Vec<String>,
-        next_rowid: i64
+        next_rowid: i64,
     ) -> i64 {
         let mut next_rowid = next_rowid;
         let rows_clone = Rc::clone(&self.rows);
@@ -283,9 +275,10 @@ impl Table {
         &mut self,
         cols: &Vec<String>,
         values: &Vec<String>,
-        next_rowid: i64
+        next_rowid: i64,
     ) {
-        let column_names = self.columns
+        let column_names = self
+            .columns
             .iter()
             .map(|col| col.column_name.to_string())
             .collect::<Vec<String>>();
@@ -370,12 +363,22 @@ impl Table {
     ///
     pub fn print_table_schema(&self) -> Result<usize> {
         let mut table = PrintTable::new();
-        table.add_row(row!["Column Name", "Data Type", "PRIMARY KEY", "UNIQUE", "NOT NULL"]);
+        table.add_row(row![
+            "Column Name",
+            "Data Type",
+            "PRIMARY KEY",
+            "UNIQUE",
+            "NOT NULL"
+        ]);
 
         for col in &self.columns {
-            table.add_row(
-                row![col.column_name, col.datatype, col.is_pk, col.is_unique, col.not_null]
-            );
+            table.add_row(row![
+                col.column_name,
+                col.datatype,
+                col.is_pk,
+                col.is_unique,
+                col.not_null
+            ]);
         }
 
         // Convert the table to a string and color it blue
@@ -408,7 +411,8 @@ impl Table {
     pub fn print_table_data(&self) {
         let mut print_table = PrintTable::new();
 
-        let column_names = self.columns
+        let column_names = self
+            .columns
             .iter()
             .map(|col| col.column_name.to_string())
             .collect::<Vec<String>>();
@@ -417,17 +421,21 @@ impl Table {
             column_names
                 .iter()
                 .map(|col| PrintCell::new(&col))
-                .collect::<Vec<PrintCell>>()
+                .collect::<Vec<PrintCell>>(),
         );
 
         let rows_clone = Rc::clone(&self.rows);
         let row_data = rows_clone.as_ref().borrow();
-        let first_col_data = row_data.get(&self.columns.first().unwrap().column_name).unwrap();
+        let first_col_data = row_data
+            .get(&self.columns.first().unwrap().column_name)
+            .unwrap();
         let num_rows = first_col_data.count();
         let mut print_table_rows: Vec<PrintRow> = vec![PrintRow::new(vec![]); num_rows];
 
         for col_name in &column_names {
-            let col_val = row_data.get(col_name).expect("Column not found in table rows");
+            let col_val = row_data
+                .get(col_name)
+                .expect("Column not found in table rows");
             let columns: Vec<String> = col_val.get_serialized_col_data();
 
             for i in 0..num_rows {
@@ -467,7 +475,7 @@ impl Column {
         datatype: String,
         is_pk: bool,
         not_null: bool,
-        is_unique: bool
+        is_unique: bool,
     ) -> Self {
         let dt = DataType::new(datatype);
         let index = match dt {
@@ -485,11 +493,7 @@ impl Column {
             is_pk,
             not_null,
             is_unique,
-            is_indexed: if is_pk {
-                true
-            } else {
-                false
-            },
+            is_indexed: if is_pk { true } else { false },
             index,
         }
     }
@@ -518,26 +522,10 @@ pub enum Row {
 impl Row {
     fn get_serialized_col_data(&self) -> Vec<String> {
         match self {
-            Row::Integer(cd) =>
-                cd
-                    .iter()
-                    .map(|(_i, v)| v.to_string())
-                    .collect(),
-            Row::Real(cd) =>
-                cd
-                    .iter()
-                    .map(|(_i, v)| v.to_string())
-                    .collect(),
-            Row::Text(cd) =>
-                cd
-                    .iter()
-                    .map(|(_i, v)| v.to_string())
-                    .collect(),
-            Row::Bool(cd) =>
-                cd
-                    .iter()
-                    .map(|(_i, v)| v.to_string())
-                    .collect(),
+            Row::Integer(cd) => cd.iter().map(|(_i, v)| v.to_string()).collect(),
+            Row::Real(cd) => cd.iter().map(|(_i, v)| v.to_string()).collect(),
+            Row::Text(cd) => cd.iter().map(|(_i, v)| v.to_string()).collect(),
+            Row::Bool(cd) => cd.iter().map(|(_i, v)| v.to_string()).collect(),
             Row::None => panic!("Data not found"),
         }
     }

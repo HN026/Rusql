@@ -1,5 +1,5 @@
-use sqlparser::ast::{ Expr, SetExpr, Statement, Value, Values };
-use crate::error::{ Result, RUSQLError };
+use crate::error::{RUSQLError, Result};
+use sqlparser::ast::{Expr, SetExpr, Statement, Value, Values};
 
 #[derive(Debug)]
 pub struct InsertQuery {
@@ -11,12 +11,14 @@ pub struct InsertQuery {
 impl InsertQuery {
     pub fn new(statement: &Statement) -> Result<InsertQuery> {
         match statement {
-            Statement::Insert { table_name, columns, source: Some(query), .. } => {
+            Statement::Insert {
+                table_name,
+                columns,
+                source: Some(query),
+                ..
+            } => {
                 let table_name = table_name.to_string();
-                let columns = columns
-                    .iter()
-                    .map(|col| col.to_string())
-                    .collect();
+                let columns = columns.iter().map(|col| col.to_string()).collect();
                 let rowvec = extract_values(&query.body)?;
 
                 Ok(InsertQuery {
@@ -25,19 +27,20 @@ impl InsertQuery {
                     rows: rowvec,
                 })
             }
-            _ => Err(RUSQLError::Internal("Error Parsing Insert Query.".to_string())),
+            _ => Err(RUSQLError::Internal(
+                "Error Parsing Insert Query.".to_string(),
+            )),
         }
     }
 }
 
 fn extract_values(body: &SetExpr) -> Result<Vec<Vec<String>>> {
-    if let SetExpr::Values(Values { explicit_row: _, rows }) = body {
-        Ok(
-            rows
-                .iter()
-                .map(|row| extract_row_values(row))
-                .collect()
-        )
+    if let SetExpr::Values(Values {
+        explicit_row: _,
+        rows,
+    }) = body
+    {
+        Ok(rows.iter().map(|row| extract_row_values(row)).collect())
     } else {
         Err(RUSQLError::Internal("Error extracting values".to_string()))
     }
@@ -45,12 +48,10 @@ fn extract_values(body: &SetExpr) -> Result<Vec<Vec<String>>> {
 
 fn extract_row_values(row: &[Expr]) -> Vec<String> {
     row.iter()
-        .filter_map(|expr| {
-            match expr {
-                Expr::Value(v) => Some(match_value(v)),
-                Expr::Identifier(i) => Some(i.to_string()),
-                _ => None,
-            }
+        .filter_map(|expr| match expr {
+            Expr::Value(v) => Some(match_value(v)),
+            Expr::Identifier(i) => Some(i.to_string()),
+            _ => None,
         })
         .collect()
 }

@@ -1,6 +1,6 @@
-use crate::error::{ Result, RUSQLError };
+use crate::error::{RUSQLError, Result};
 use crate::sql::db::table::Table;
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug)]
