@@ -42,6 +42,9 @@ cargo run
 - Support for more SQL syntax: Add support for more complex SQL queries and statements.
 - Testing: Implement unit tests and integration tests to ensure the reliability and correctness of the database.
 
+# MetaCommands
+For information on the available meta commands, see the [Meta Commands](./util/metacommands.md) documentation.
+
 # Contributing to RUSQL
 
 First off, thank you for considering contributing to RUSQL. It's people like you that make RUSQL such a great tool.
@@ -58,6 +61,11 @@ A good branch name would be (where issue #123 is the ticket you're working on):
 
 ```bash
 git checkout -b feature/123-AddNewFeature
+```
+
+## Formatting
+```bash
+$ cargo fmt
 ```
 
 ## Usage
