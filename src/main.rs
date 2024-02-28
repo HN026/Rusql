@@ -5,14 +5,15 @@ extern crate prettytable;
 mod error;
 mod meta_command;
 mod repl;
-mod sql;
 mod replloop;
+mod sql;
+mod util;
 
 use repl::{get_config, REPLHelper};
-use sql::db::database::Database;
 use replloop::run_repl_loop;
+use sql::db::database::Database;
+use util::intro::print_intro;
 
-use colored::*;
 use rustyline::Editor;
 
 use clap::{crate_authors, crate_description, crate_name, crate_version, Command};
@@ -44,17 +45,7 @@ fn main() -> rustyline::Result<()> {
         println!("No previous history.");
     }
 
-    println!(
-        "{}",
-        format!(
-            "{} - {}\n{}\nUse .help to list metacommands.\nFor more information on how it works, refer to /util/Schemas/schema.sql.",
-            crate_name!(),
-            crate_version!(),
-            "Developed by Huzaifa Naseer."
-        )
-            .blue()
-            .bold()
-    );
+    print_intro();
 
     let db = Database::new("tempdbase".to_string());
 
