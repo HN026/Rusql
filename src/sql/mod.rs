@@ -3,7 +3,9 @@ pub mod parser;
 
 use colored::*;
 use parser::create::CreateQuery;
+use parser::drop::drop_table;
 use parser::insert::InsertQuery;
+use parser::list_tables::list_tables;
 
 use sqlparser::ast::Statement;
 use sqlparser::dialect::SQLiteDialect;
@@ -12,9 +14,6 @@ use sqlparser::parser::{Parser, ParserError};
 use crate::error::{RUSQLError, Result};
 use crate::sql::db::database::Database;
 use crate::sql::db::table::Table;
-
-use prettytable::format;
-use prettytable::{Cell, Row, Table as tb};
 
 #[derive(Debug, PartialEq)]
 pub enum SQLCommand {
@@ -150,52 +149,6 @@ fn insert_into_table(query: &Statement, db: &mut Database) -> Result<String> {
 
     db_table.print_table_data();
     Ok(String::from("INSERT Statement executed.")
-        .green()
-        .to_string())
-}
-
-fn drop_table(query: &Statement, db: &mut Database) -> Result<String> {
-    if let Statement::Drop {
-        object_type, names, ..
-    } = query
-    {
-        if let sqlparser::ast::ObjectType::Table = object_type {
-            if let Some(table_name) = names.get(0) {
-                db.drop_table(table_name.to_string())?;
-                Ok(String::from("DROP TABLE Statement executed.")
-                    .green()
-                    .to_string())
-            } else {
-                Err(RUSQLError::Internal(
-                    "Table name not found.".red().to_string(),
-                ))
-            }
-        } else {
-            Err(RUSQLError::Internal(
-                "Only DROP TABLE is supported.".red().to_string(),
-            ))
-        }
-    } else {
-        Err(RUSQLError::Internal(
-            "Invalid Drop Statement".red().to_string(),
-        ))
-    }
-}
-
-fn list_tables(db: &Database) -> Result<String> {
-    let mut table = tb::new();
-    table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-    table.set_titles(row!["S.No", "Table Name"]);
-
-    for (i, table_name) in db.tables.keys().enumerate() {
-        table.add_row(Row::new(vec![
-            Cell::new(&(i + 1).to_string()).style_spec("Fb"),
-            Cell::new(table_name).style_spec("Fb"),
-        ]));
-    }
-    table.printstd();
-
-    Ok(String::from("LIST TABLES Statement executed.")
         .green()
         .to_string())
 }
