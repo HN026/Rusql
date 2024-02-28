@@ -6,14 +6,13 @@ mod error;
 mod meta_command;
 mod repl;
 mod sql;
+mod replloop;
 
-use meta_command::handle_meta_command;
-use repl::{get_command_type, get_config, CommandType, REPLHelper};
+use repl::{get_config, REPLHelper};
 use sql::db::database::Database;
-use sql::process_command;
+use replloop::run_repl_loop;
 
 use colored::*;
-use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 use clap::{crate_authors, crate_description, crate_name, crate_version, Command};
@@ -57,51 +56,9 @@ fn main() -> rustyline::Result<()> {
             .bold()
     );
 
-    let mut db = Database::new("tempdbase".to_string());
+    let db = Database::new("tempdbase".to_string());
 
-    loop {
-        let p = "RUSQL>> ".yellow().bold();
-        repl.helper_mut().expect("No helper found").colored_prompt =
-            format!("\x1b[1;32m{}\x1b[0m", p);
-
-        let input = repl.readline(&p);
-        match input {
-            Ok(command) => {
-                if let Err(e) = repl.add_history_entry(command.as_str()) {
-                    eprintln!("Failed to add history entry: {}", e);
-                }
-                match get_command_type(&command.trim().to_owned()) {
-                    CommandType::MetaCommand(cmd) => {
-                        let _ = match handle_meta_command(cmd, &mut repl) {
-                            Ok(msg) => println!("{}", msg),
-                            Err(err) => eprintln!("An error occured: {}", err),
-                        };
-                    }
-                    CommandType::SQLCommand(_cmd) => {
-                        let _ = match process_command(&command, &mut db) {
-                            Ok(msg) => println!("{}", msg),
-                            Err(err) => eprintln!("An error occured: {}", err),
-                        };
-                    }
-                }
-            }
-            Err(ReadlineError::Interrupted) => {
-                println!("CTRL-C");
-                break;
-            }
-            Err(ReadlineError::Eof) => {
-                println!("CTRL-D");
-                break;
-            }
-            Err(err) => {
-                println!("Error: {:?}", err);
-                break;
-            }
-        }
-    }
-    if let Err(err) = repl.save_history("history") {
-        println!("Error saving history: {:?}", err);
-    }
+    run_repl_loop(repl, db)?;
 
     Ok(())
 }
