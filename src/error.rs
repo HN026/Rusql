@@ -1,3 +1,5 @@
+//! Custom error types for RUSQL using thiserror.
+
 use thiserror::Error;
 
 use sqlparser::parser::ParserError;

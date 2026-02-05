@@ -1,3 +1,5 @@
+//! REPL (Read-Eval-Print-Loop) implementation with syntax highlighting and history.
+
 use crate::meta_command::*;
 use crate::sql::*;
 

@@ -1,3 +1,6 @@
+//! Database container for managing multiple tables.
+//! Provides O(1) table lookups using HashMap. All operations are currently in-memory.
+
 use crate::error::{RUSQLError, Result};
 use crate::sql::db::table::Table;
 use serde::{Deserialize, Serialize};
@@ -23,26 +26,33 @@ impl Database {
 
     #[allow(dead_code)]
     pub fn get_table(&self, table_name: String) -> Result<&Table> {
-        if let Some(table) = self.tables.get(&table_name) {
-            Ok(table)
-        } else {
-            Err(RUSQLError::General(String::from("Table not found.")))
-        }
+        self.tables
+            .get(&table_name)
+            .ok_or_else(|| RUSQLError::General(format!("Table '{}' not found", table_name)))
     }
 
     pub fn get_table_mut(&mut self, table_name: String) -> Result<&mut Table> {
-        if let Some(table) = self.tables.get_mut(&table_name) {
-            Ok(table)
-        } else {
-            Err(RUSQLError::General(String::from("Table not found.")))
-        }
+        self.tables
+            .get_mut(&table_name)
+            .ok_or_else(|| RUSQLError::General(format!("Table '{}' not found", table_name)))
     }
 
     pub fn drop_table(&mut self, table_name: String) -> Result<()> {
-        if self.tables.remove(&table_name).is_none() {
-            Err(RUSQLError::General(String::from("Table not found.")))
-        } else {
-            Ok(())
-        }
+        self.tables
+            .remove(&table_name)
+            .map(|_| ())
+            .ok_or_else(|| {
+                RUSQLError::General(format!("Cannot drop table '{}': not found", table_name))
+            })
+    }
+
+    #[allow(dead_code)]
+    pub fn table_count(&self) -> usize {
+        self.tables.len()
+    }
+
+    #[allow(dead_code)]
+    pub fn list_table_names(&self) -> Vec<String> {
+        self.tables.keys().cloned().collect()
     }
 }

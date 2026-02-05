@@ -1,3 +1,5 @@
+//! Meta-command handling for REPL control (.help, .exit, .cls).
+
 use crate::error::{RUSQLError, Result};
 use crate::repl::REPLHelper;
 use rustyline::history::FileHistory;

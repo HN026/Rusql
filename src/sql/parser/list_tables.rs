@@ -2,7 +2,7 @@ use crate::sql::RUSQLError;
 use crate::Database;
 use colored::*;
 use prettytable as tb;
-use prettytable::{format, Cell, Row};
+use prettytable::{format, row, Cell, Row};
 
 pub fn list_tables(db: &Database) -> Result<String, RUSQLError> {
     let mut table = tb::Table::new();

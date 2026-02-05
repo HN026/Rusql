@@ -1,3 +1,7 @@
+//! Table implementation using columnar storage model.
+//! Each column is stored in a separate BTreeMap with rowid as key.
+//! Supports primary keys, unique constraints, and automatic indexing.
+
 use crate::error::{RUSQLError, Result};
 use crate::sql::parser::create::CreateQuery;
 use colored::*;
@@ -7,7 +11,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::rc::Rc;
 
-use prettytable::{Cell as PrintCell, Row as PrintRow, Table as PrintTable};
+use prettytable::{row, Cell as PrintCell, Row as PrintRow, Table as PrintTable};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub enum DataType {
@@ -345,7 +349,7 @@ impl Table {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```ignore
     /// let table = Table::new(payload);
     /// table.print_table_schema();
     ///
@@ -391,7 +395,7 @@ impl Table {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```ignore
     /// let db_table = db.get_table_mut(table_name.to_string()).unwrap();
     /// db_table.print_table_data();
     ///
