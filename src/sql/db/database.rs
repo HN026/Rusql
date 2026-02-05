@@ -38,12 +38,9 @@ impl Database {
     }
 
     pub fn drop_table(&mut self, table_name: String) -> Result<()> {
-        self.tables
-            .remove(&table_name)
-            .map(|_| ())
-            .ok_or_else(|| {
-                RUSQLError::General(format!("Cannot drop table '{}': not found", table_name))
-            })
+        self.tables.remove(&table_name).map(|_| ()).ok_or_else(|| {
+            RUSQLError::General(format!("Cannot drop table '{}': not found", table_name))
+        })
     }
 
     #[allow(dead_code)]
